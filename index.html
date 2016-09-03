@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="puzznic.css">
+    </head>
+    <body>
+        <canvas id="puzznic"></canvas>
+        <script src="mapas.js"></script>
+        <script src="puzznic.js"></script>
+        <script>
+            var puzznic = new Puzznic('puzznic');
+            puzznic.cargar_mapa("Basico");
+            puzznic.iniciar();
+            
+            window.addEventListener('resize', function(){ puzznic.resize() }, false);
+            window.addEventListener('orientationchange', function(){ puzznic.resize() }, false);
+        </script>
+    </body>
+</html>
