@@ -8,10 +8,11 @@ var Elemento = function(x, y, valor){
     this.x = x;
     this.y = y;
     this.valor = valor;
-    this.mov = [0, 0];
+    this.mov = null;
     this.i = 0;
 }
 
+Elemento.i_max = 10;
 
 var Puzznic = function(elemento){
     var self = this;
@@ -20,7 +21,7 @@ var Puzznic = function(elemento){
     this.tx = 30;
     this.ty = 30;
     this.ftp = 1000/10;
-    
+
     this.elementos = {};
     this.bloques = {};
     this.el_x = 0;
@@ -78,9 +79,9 @@ Puzznic.prototype.dibujar = function(){
     }
 
     for(var i in this.elementos){
-        var c = coordenadas(i);
-        var valor = this.elementos[i].valor;
-        this.dc(c[0], c[1], valor);
+        var el = this.elementos[i];
+        if(el!=null && (el.mov==null || el.mov[2]==0 || el.i%2==0))
+            this.dc(el.x, el.y, el.valor);
     }
 
     for(var i in this.lg)
@@ -153,6 +154,10 @@ Puzznic.prototype.dibujar = function(){
 
 Puzznic.prototype.iniciar = function(){
     var self = this;
+    this.mapas = [];
+    for(var i in puzznic_mapas)
+        this.mapas.push(i);
+    this.cargar_mapa(this.mapas.shift());
     this.resize();
     this.dibujar();
     setInterval(function(){
@@ -208,32 +213,57 @@ Puzznic.prototype.cargar_mapa = function(mapa){
     };
 }
 
-Puzznic.prototype.teclas = function(){
-    console.log(this);
+Puzznic.prototype.es_ganador = function(mapa){
+    var aux = true;
+    for(var i in this.elementos){
+        if(this.elementos[i]!=null){
+            aux = false;
+            break
+        }
+    }
+    if(aux){
+        delete this.elementos;
+        delete this.bloques;
+        this.elementos = {};
+        this.bloques = {};
+        
+        this.cargar_mapa(this.mapas.shift());
+    }
 }
 
 Puzznic.prototype.run = function(){
+    this.marcar_gravedad();
+    this.marcar_combinar();
     this.teclas_mover();
-    this.aplicar_gravedad();
-    this.aplicar_combinacion();
+    this.aplicar_movimiento();
+    if(this.el_sel!=null){
+        this.el_x = this.el_sel.x;
+        this.el_y = this.el_sel.y;
+    }
+    this.es_ganador();
     this.dibujar();
 }
 
 Puzznic.prototype.mover_iz = function(){
-    if(this.el_sel!=null)
-        this.mover(this.el_x, this.el_y, this.el_x - 1, this.el_y);
-    this.el_x--;
+    if(this.el_sel!=null){
+        var el = this.el_sel;
+        if(el!==undefined && el.mov == null && this.puede_mover(el.x - 1, el.y)){
+            el.mov = [-1, 0, 0];
+            this.elementos[[el.x - 1, el.y]] = null;
+        }
+    }else
+        this.el_x--;
 }
 
 Puzznic.prototype.mover_de = function(){
-    if(this.el_sel!=null)
-        this.mover(this.el_x, this.el_y, this.el_x + 1, this.el_y);
-    this.el_x++;
-}
-
-Puzznic.prototype.mover = function(x, y, x1, y1){
-    this.elementos[[x1, y1]] = this.elementos[[x, y]];
-    delete this.elementos[[x, y]];
+    if(this.el_sel!=null){
+        var el = this.el_sel;
+        if(el!==undefined && el.mov == null && this.puede_mover(el.x + 1, el.y)){
+            el.mov = [1, 0, 0];
+            this.elementos[[el.x + 1, el.y]] = null;
+        }
+    }else
+        this.el_x++;
 }
 
 Puzznic.prototype.teclas_mover = function(){
@@ -258,51 +288,77 @@ Puzznic.prototype.teclas_mover = function(){
     }
     if(this.press[this.key_sel]==false && this.el_sel!=null){
         this.el_sel = null;
+        this.el_x = Math.round(this.el_x);
+        this.el_y = Math.round(this.el_y);
     }
 }
 
-Puzznic.prototype.aplicar_gravedad = function(){
+Puzznic.prototype.marcar_gravedad = function(){
     for(var i in this.elementos){
         var c = coordenadas(i);
-        if(this.puede_mover(c[0], c[1] + 1)){
-            while(this.elementos[[c[0], c[1]]]!==undefined){
-                if(this.el_sel==this.elementos[[c[0], c[1]]])
-                    this.el_y++;
-                this.mover(c[0], c[1], c[0], c[1] + 1);
+        if(this.mov == null && this.puede_mover(c[0], c[1] + 1)){
+            while(this.elementos[[c[0], c[1]]]!==undefined && 
+                    this.elementos[[c[0], c[1]]]!=null && 
+                    this.elementos[[c[0], c[1]]].mov == null){
+                this.elementos[[c[0], c[1]]].mov = [0, 1, 0];
+                if(this.elementos[[c[0], c[1] + 1]] === undefined)
+                    this.elementos[[c[0], c[1] + 1]] = null;
                 c[1]--;
             }
         }
     }
 }
 
-Puzznic.prototype.cayendo = function(x, y){
-    while(this.elementos[[x, y]]!==undefined)
-        y++;
-    return this.bloques[[x, y]]===undefined;
-}
-
-Puzznic.prototype.aplicar_combinacion = function(){
+Puzznic.prototype.marcar_combinar = function(){
     var listado = [];
     for(var i in this.elementos){
         var c = coordenadas(i);
-        if(!this.cayendo(c[0], c[1])) {
+        if(this.elementos[i]!=null && this.elementos[i].mov == null){
             var iguales = false;
             for(var j=0;j<Puzznic.movimientos.length;j++){
                 var el = this.elementos[[c[0]+Puzznic.movimientos[j][0], c[1]+Puzznic.movimientos[j][1]]];
-                if(el!==undefined && this.elementos[i].valor == el.valor){
+                if(el!==undefined && el!=null && el.mov == null && this.elementos[i].valor == el.valor){
                     iguales = true;
                     break;
                 }
             }
-            if(iguales){
-                listado.push(c);
-                if(this.el_sel==this.elementos[[c[0], c[1]]])
-                    this.el_sel = null;
+            if(iguales)
+                listado.push(i);
+        }
+    }
+
+    for(var i = 0;i<listado.length;i++)
+        this.elementos[listado[i]].mov = [0, 0, 1];
+
+    delete listado;
+}
+
+Puzznic.prototype.aplicar_movimiento = function(){
+    var agregar = [];
+    for(var i in this.elementos){
+        var c = coordenadas(i);
+        var el = this.elementos[i];
+        if(el!==undefined && el!= null && el.mov != null){
+            el.x += el.mov[0] / Elemento.i_max;
+            el.y += el.mov[1] / Elemento.i_max;
+            el.i++;
+            if(el.i>Elemento.i_max){
+                el.i = 0;
+                if(el.mov[2]==0){
+                    el.x = c[0] + el.mov[0];
+                    el.y = c[1] + el.mov[1];
+                    delete el.mov;
+                    el.mov = null;
+                    delete this.elementos[i];
+                    agregar.push(el);
+                }else{
+                    delete this.elementos[i];
+                }
             }
         }
     }
-    for(var i = 0;i<listado.length;i++)
-        this.eliminar_elemento(listado[i][0], listado[i][1]);
-
-    delete listado;
+    for(var i in agregar){
+        var el = agregar[i];
+        this.elementos[[el.x, el.y]] = el;
+    }
 }
