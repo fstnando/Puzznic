@@ -4,6 +4,15 @@ function coordenadas(s){
     return n;
 }
 
+var Elemento = function(x, y, valor){
+    this.x = x;
+    this.y = y;
+    this.valor = valor;
+    this.mov = [0, 0];
+    this.i = 0;
+}
+
+
 var Puzznic = function(elemento){
     var self = this;
     this.canvas = document.getElementById(elemento);
@@ -38,7 +47,7 @@ var Puzznic = function(elemento){
 Puzznic.colores = ['#AAAAFF', '#AAFFFF', '#FFAAFF', '#FFFFAA', '#FF0000', 
     '#00FF00', '#888888', '#2288FF', '#8822FF', '#FF8822'];
 
-Puzznic.movimientos = [[-1,0], [1,0], [0,-1], [0,1]]
+Puzznic.movimientos = [[-1,0], [1,0], [0,-1], [0,1]];
 
 Puzznic.prototype.resize = function(){
     this.canvas.width = this.canvas.offsetWidth;
@@ -70,7 +79,7 @@ Puzznic.prototype.dibujar = function(){
 
     for(var i in this.elementos){
         var c = coordenadas(i);
-        var valor = this.elementos[i];
+        var valor = this.elementos[i].valor;
         this.dc(c[0], c[1], valor);
     }
 
@@ -152,7 +161,8 @@ Puzznic.prototype.iniciar = function(){
 }
 
 Puzznic.prototype.nuevo_elemento = function(x, y, valor){
-    this.elementos[[x, y]] = valor;
+    var el = new Elemento(x, y, valor);
+    this.elementos[[x, y]] = el;
 }
 
 Puzznic.prototype.eliminar_elemento = function(x, y){
@@ -278,8 +288,8 @@ Puzznic.prototype.aplicar_combinacion = function(){
         if(!this.cayendo(c[0], c[1])) {
             var iguales = false;
             for(var j=0;j<Puzznic.movimientos.length;j++){
-                var valor = this.elementos[[c[0]+Puzznic.movimientos[j][0], c[1]+Puzznic.movimientos[j][1]]];
-                if(this.elementos[i] == valor){
+                var el = this.elementos[[c[0]+Puzznic.movimientos[j][0], c[1]+Puzznic.movimientos[j][1]]];
+                if(el!==undefined && this.elementos[i].valor == el.valor){
                     iguales = true;
                     break;
                 }
