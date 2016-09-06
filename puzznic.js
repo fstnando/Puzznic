@@ -20,13 +20,17 @@ var Puzznic = function(elemento){
     this.context = this.canvas.getContext("2d");
     this.tx = 30;
     this.ty = 30;
-    this.ftp = 1000/10;
+    this.ftp = 1000/60;
+    this.ix = 0;
+    this.iy = 0;
 
     this.elementos = {};
     this.bloques = {};
+    this.cantidades = {};
     this.el_x = 0;
     this.el_y = 0;
     this.el_sel = null;
+    this.puntos = 0;
     
     this.key_left   = 37;
     this.key_right  = 39;
@@ -35,6 +39,8 @@ var Puzznic = function(elemento){
     this.key_sel    = 32;
     
     this.press = {};
+
+    this.movidas = [];
     
     window.onkeydown = function(ev){
         self.press[ev.keyCode] = true;
@@ -42,6 +48,24 @@ var Puzznic = function(elemento){
     
     window.onkeyup = function(ev){
         self.press[ev.keyCode] = false;
+    }
+
+    window.onkeypress = function(ev){
+        var con = 0;
+        if(self.press[self.key_sel] == true)
+            con = 1;
+
+        if(ev.keyCode == self.key_left)
+            self.movidas.push([-1, 0, con]);
+        else
+        if(ev.keyCode == self.key_right)
+            self.movidas.push([1, 0, con]);
+        else
+        if(ev.keyCode == self.key_up)
+            self.movidas.push([0, -1, con]);
+        else
+        if(ev.keyCode == self.key_down)
+            self.movidas.push([0, 1, con]);
     }
 }
 
@@ -75,81 +99,72 @@ Puzznic.prototype.dibujar = function(){
     
     for(var i in this.bloques){
         var c = coordenadas(i);
-        this.dc(c[0], c[1], 0);
+        this.dc(this.ix + c[0], this.iy + c[1], 0);
     }
 
     for(var i in this.elementos){
         var el = this.elementos[i];
         if(el!=null && (el.mov==null || el.mov[2]==0 || el.i%2==0))
-            this.dc(el.x, el.y, el.valor);
+            this.dc(this.ix + el.x, this.iy + el.y, el.valor);
     }
 
-    for(var i in this.lg)
-        this.dc(this.lg[i][0], this.lg[i][1], this.lg[i][2]);
-
-    if(this.lc!==undefined && this.i%2==0)
-        for(var i in this.lc)
-            this.dc(this.lc[i][0], this.lc[i][1], this.lc[i][2]);
-
-    if(this.movida && this.movida[2]){
-        var x = this.movida[0]*TamX + TamX/2;
-        var y = this.movida[1]*TamX + TamX/2;
-        this.context.beginPath();
-        this.context.moveTo(x, y);
-        x += this.movida[2]*TamX;
-        this.context.lineTo(x, y);
-        this.context.lineTo(x - 3 * this.movida[2], y - 3);
-        this.context.moveTo(x, y);
-        this.context.lineTo(x - 3 * this.movida[2], y + 3);
-        this.context.closePath();
-        this.context.strokeStyle = '#000000';
-        this.context.lineWidth = 1;
-        this.context.stroke();
+    for(var i in this.cantidades){
+        var y = 1 + parseInt(i);
+        this.dc(20, y, i);
+        this.context.font = "bold 12px Arial";
+        this.context.textAlign = "center";
+        this.context.fillStyle = "black";
+        this.context.fillText(this.cantidades[i], 21 * this.tx + this.tx / 2, y * this.ty + this.ty / 2 + 6);
     }
-    
+
     if(this.el_sel==null){
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx, this.el_y*this.ty, this.tx, this.ty);
+        this.context.rect((this.ix + this.el_x)*this.tx, (this.iy + this.el_y)*this.ty, this.tx, this.ty);
         this.context.closePath();
         this.context.strokeStyle = '#FFFFFF';
         this.context.lineWidth = 1;
         this.context.stroke();
         
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx + 1, this.el_y*this.ty + 1, this.tx - 2, this.ty - 2);
+        this.context.rect((this.ix + this.el_x)*this.tx + 1, (this.iy + this.el_y)*this.ty + 1, this.tx - 2, this.ty - 2);
         this.context.closePath();
         this.context.strokeStyle = '#FF0000';
         this.context.lineWidth = 1;
         this.context.stroke();
         
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx + 2, this.el_y*this.ty + 2, this.tx - 4, this.ty - 4);
+        this.context.rect((this.ix + this.el_x)*this.tx + 2, (this.iy + this.el_y)*this.ty + 2, this.tx - 4, this.ty - 4);
         this.context.closePath();
         this.context.strokeStyle = '#000000';
         this.context.lineWidth = 1;
         this.context.stroke();
     }else{
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx, this.el_y*this.ty, this.tx, this.ty);
+        this.context.rect((this.ix + this.el_x)*this.tx, (this.iy + this.el_y)*this.ty, this.tx, this.ty);
         this.context.closePath();
         this.context.strokeStyle = '#FFFFFF';
         this.context.lineWidth = 1;
         this.context.stroke();
         
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx + 1, this.el_y*this.ty + 1, this.tx - 2, this.ty - 2);
+        this.context.rect((this.ix + this.el_x)*this.tx + 1, (this.iy + this.el_y)*this.ty + 1, this.tx - 2, this.ty - 2);
         this.context.closePath();
         this.context.strokeStyle = '#00FF00';
         this.context.lineWidth = 1;
         this.context.stroke();
         
         this.context.beginPath();
-        this.context.rect(this.el_x*this.tx + 2, this.el_y*this.ty + 2, this.tx - 4, this.ty - 4);
+        this.context.rect((this.ix + this.el_x)*this.tx + 2, (this.iy + this.el_y)*this.ty + 2, this.tx - 4, this.ty - 4);
         this.context.closePath();
         this.context.strokeStyle = '#000000';
         this.context.lineWidth = 1;
         this.context.stroke();
     }
+
+    this.context.font = "bold 12px Arial";
+    this.context.textAlign = "left";
+    this.context.fillStyle = "black";
+    this.context.fillText("Puntos: " + this.puntos, 20 * this.tx, this.ty + 6);
 }
 
 Puzznic.prototype.iniciar = function(){
@@ -199,13 +214,21 @@ Puzznic.prototype.cargar_mapa = function(mapa){
         for(var j=0;j<arr_mapa[i].length;j++){
             if(arr_mapa[i][j] == 1){
                 this.nuevo_bloque(j, i);
+                if(j>this.ix) ix = j;
+                if(i>this.iy) iy = i;
             }else
             if(arr_mapa[i][j] > 1){
                 this.nuevo_elemento(j, i, arr_mapa[i][j] - 1);
+                if((arr_mapa[i][j] - 1) in this.cantidades){
+                    this.cantidades[arr_mapa[i][j] - 1]++;
+                }else{
+                    this.cantidades[arr_mapa[i][j] - 1] = 1;
+                }
             }
         }
     }
-    
+    this.ix = 5 - parseInt(this.ix/2 + 1);
+    this.iy = 5 - parseInt(this.iy/2 + 1);
     for(var i in this.elementos){
         var c = coordenadas(i);
         this.el_x = c[0];
@@ -224,9 +247,11 @@ Puzznic.prototype.es_ganador = function(mapa){
     if(aux){
         delete this.elementos;
         delete this.bloques;
+        delete this.cantidades;
         this.elementos = {};
         this.bloques = {};
-        
+        this.cantidades = {};
+
         this.cargar_mapa(this.mapas.shift());
     }
 }
@@ -267,6 +292,44 @@ Puzznic.prototype.mover_de = function(){
 }
 
 Puzznic.prototype.teclas_mover = function(){
+    if(this.movidas.length > 0){
+        var m = this.movidas.shift();
+        if(m[2] == 0){
+            if(this.el_sel!=null){
+                this.el_sel = null;
+                this.el_x = Math.round(this.el_x);
+                this.el_y = Math.round(this.el_y);
+            }
+
+            if(m[0] == -1){
+                this.el_x--;
+                if(this.el_x<0) this.el_x = 0
+            }else
+            if(m[0] == 1){
+                this.el_x++;
+                if(this.el_x>20) this.el_x = 20
+            }else
+            if(m[1] == -1){
+                this.el_y--;
+                if(this.el_y<0) this.el_y = 0
+            }else
+            if(m[1] == 1){
+                this.el_y++;
+                if(this.el_y>20) this.el_y = 20
+            }
+        }else{
+            if(this.el_sel==null && this.elementos[[this.el_x, this.el_y]]!==undefined)
+                this.el_sel = this.elementos[[this.el_x, this.el_y]];
+
+            if(m[0] == -1)
+                this.mover_iz();
+            else
+            if(m[0] == 1)
+                this.mover_de();
+        }
+    }
+
+    /*
     if(this.press[this.key_left]==true){
         if(this.el_puede_mover(this.el_x - 1,this.el_y))
             this.mover_iz();
@@ -291,6 +354,7 @@ Puzznic.prototype.teclas_mover = function(){
         this.el_x = Math.round(this.el_x);
         this.el_y = Math.round(this.el_y);
     }
+    */
 }
 
 Puzznic.prototype.marcar_gravedad = function(){
@@ -335,6 +399,7 @@ Puzznic.prototype.marcar_combinar = function(){
 
 Puzznic.prototype.aplicar_movimiento = function(){
     var agregar = [];
+    var combinados = 0;
     for(var i in this.elementos){
         var c = coordenadas(i);
         var el = this.elementos[i];
@@ -352,11 +417,15 @@ Puzznic.prototype.aplicar_movimiento = function(){
                     delete this.elementos[i];
                     agregar.push(el);
                 }else{
+                    this.cantidades[this.elementos[i].valor]--;
                     delete this.elementos[i];
+                    combinados++;
                 }
             }
         }
     }
+    if(combinados>0)
+        this.puntos += 10*(combinados - 1) + 20*(combinados - 2);
     for(var i in agregar){
         var el = agregar[i];
         this.elementos[[el.x, el.y]] = el;
