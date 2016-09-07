@@ -43,9 +43,10 @@ var Puzznic = function(elemento){
     this.key_up         = 38;
     this.key_down       = 40;
     this.key_sel        = 32;
-    this.key_reiniciar  = 112;
-    this.key_pausa      = 114;
+    this.key_reiniciar  = 82;
+    this.key_pausa      = 80;
     this.key_ctr_fc     = 102;
+    this.key_ayuda      = 112;
 
     this.fs = "desktop";
     this.fonts = {
@@ -80,7 +81,8 @@ var Puzznic = function(elemento){
 
     };
 
-    window.onkeypress = function(ev){
+    window.onkeydown = function(ev){
+        ev = ev || window.event;
         self.keypress_func(ev);
     }
 
@@ -100,14 +102,17 @@ Puzznic.prototype.eventos_teclas_juego = function(){
 
     delete this.keypress_func;
     this.keypress_func = function(ev){
-        var codigo = ev.charCode | ev.keyCode;
-        //console.log(ev);
+        var codigo = ev.which || ev.keyCode;
 
         if(codigo==self.key_ctr_fc && ev.ctrlKey==true){
             self.to_fullscreen();
         }else
         switch(codigo){
-            case self.key_reiniciar:
+            case self.key_ayuda:
+                self.pausar();
+                self.pantalla_ayuda();
+                break;
+            case self.key_pausa:
                 if(self.intervalo!=null){
                     self.pausar();
                     self.dibujar_pausa();
@@ -115,7 +120,7 @@ Puzznic.prototype.eventos_teclas_juego = function(){
                     self.reanudar();
                 }
                 break;
-            case self.key_pausa:
+            case self.key_reiniciar:
                 self.pausar();
                 self.cargar_mapa(self.titulo);
                 break;
@@ -167,8 +172,8 @@ Puzznic.prototype.dibujar = function(){
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
     for(var i in this.bloques){
-        var c = coordenadas(i);
-        this.dc(this.ix + c[0], this.iy + c[1], 0);
+        var el = this.bloques[i];
+        this.dc(this.ix + el.x, this.iy + el.y, 0);
     }
 
     for(var i in this.elementos){
@@ -243,8 +248,12 @@ Puzznic.prototype.iniciar = function(){
     this.agregar_mapas();
     this.pausar();
 
-    this.pantalla = this.pantalla_inicial;
-    this.pantalla_inicial();
+    //this.pantalla = this.pantalla_inicial;
+    //this.pantalla_inicial();
+
+    this.pantalla = this.dibujar;
+    this.eventos_teclas_juego();
+    this.mapa_siguiente();
 }
 
 Puzznic.prototype.agregar_mapas = function(){
@@ -287,7 +296,8 @@ Puzznic.prototype.eliminar_elemento = function(x, y){
 }
 
 Puzznic.prototype.nuevo_bloque = function(x, y){
-    this.bloques[[x, y]] = 0;
+    var el = new Elemento(x, y, 0);
+    this.bloques[[x, y]] = el;
 }
 
 Puzznic.prototype.eliminar_bloque = function(x, y){
@@ -325,18 +335,33 @@ Puzznic.prototype.cargar_mapa = function(mapa){
     var arr_mapa = puzznic_mapas[mapa];
     for(var i=0;i<arr_mapa.length;i++){
         for(var j=0;j<arr_mapa[i].length;j++){
-            if(arr_mapa[i][j] == 1){
-                this.nuevo_bloque(j, i);
-                if(j>this.ix) this.ix = j;
-                if(i>this.iy) this.iy = i;
-            }else
-            if(arr_mapa[i][j] > 1){
-                this.nuevo_elemento(j, i, arr_mapa[i][j] - 1);
-                if((arr_mapa[i][j] - 1) in this.cantidades){
-                    this.cantidades[arr_mapa[i][j] - 1]++;
-                }else{
-                    this.cantidades[arr_mapa[i][j] - 1] = 1;
-                }
+            var caracter = arr_mapa[i].charAt(j);
+            switch(caracter){
+                case "0":
+                    break;
+                case "1":
+                    this.nuevo_bloque(j, i);
+                    if(j>this.ix) this.ix = j;
+                    if(i>this.iy) this.iy = i;
+                    break;
+                case "H":
+                    this.nuevo_bloque(j, i);
+                    this.bloques[[j, i]].vx = 1;
+                    this.bloques[[j, i]].intervalo = 20;
+                    break;
+                case "V":
+                    this.nuevo_bloque(j, i);
+                    this.bloques[[j, i]].vy = 1;
+                    this.bloques[[j, i]].intervalo = 20;
+                    break;
+                default:
+                    caracter = parseInt(caracter);
+                    this.nuevo_elemento(j, i, caracter - 1);
+                    if((arr_mapa[i][j] - 1) in this.cantidades){
+                        this.cantidades[caracter - 1]++;
+                    }else{
+                        this.cantidades[caracter - 1] = 1;
+                    }
             }
         }
     }
@@ -376,6 +401,7 @@ Puzznic.prototype.es_ganador = function(mapa){
 }
 
 Puzznic.prototype.run = function(){
+    this.marcar_bloques_movimientos();
     this.marcar_gravedad();
     this.marcar_combinar();
     this.teclas_mover();
@@ -389,25 +415,25 @@ Puzznic.prototype.run = function(){
 }
 
 Puzznic.prototype.mover_iz = function(){
-    if(this.el_sel!=null){
-        var el = this.el_sel;
-        if(el!==undefined && el.mov == null && this.puede_mover(el.x - 1, el.y)){
-            el.mov = [-1, 0, 0];
-            this.elementos[[el.x - 1, el.y]] = null;
-        }
-    }else
-        this.el_x--;
+    var movida = false;
+    var el = this.el_sel;
+    if(el!==undefined && el.mov == null && this.puede_mover(el.x - 1, el.y)){
+        el.mov = [-1, 0, 0];
+        this.elementos[[el.x - 1, el.y]] = null;
+        movida = true;
+    }
+    return movida;
 }
 
 Puzznic.prototype.mover_de = function(){
-    if(this.el_sel!=null){
-        var el = this.el_sel;
-        if(el!==undefined && el.mov == null && this.puede_mover(el.x + 1, el.y)){
-            el.mov = [1, 0, 0];
-            this.elementos[[el.x + 1, el.y]] = null;
-        }
-    }else
-        this.el_x++;
+    var movida = false;
+    var el = this.el_sel;
+    if(el!==undefined && el.mov == null && this.puede_mover(el.x + 1, el.y)){
+        el.mov = [1, 0, 0];
+        this.elementos[[el.x + 1, el.y]] = null;
+        movida = true;
+    }
+    return movida;
 }
 
 Puzznic.prototype.teclas_mover = function(){
@@ -418,6 +444,18 @@ Puzznic.prototype.teclas_mover = function(){
                 case 0:
                     if(this.elementos[[this.el_x, this.el_y]]!==undefined && this.elementos[[this.el_x, this.el_y]]!=null)
                         this.el_sel = this.elementos[[this.el_x, this.el_y]];
+                    else
+                    if(this.elementos[[this.el_x - 1, this.el_y]]!==undefined && this.elementos[[this.el_x - 1, this.el_y]]!=null)
+                        this.el_sel = this.elementos[[this.el_x - 1, this.el_y]];
+                    else
+                    if(this.elementos[[this.el_x + 1, this.el_y]]!==undefined && this.elementos[[this.el_x + 1, this.el_y]]!=null)
+                        this.el_sel = this.elementos[[this.el_x + 1, this.el_y]];
+                    else
+                    if(this.elementos[[this.el_x, this.el_y - 1]]!==undefined && this.elementos[[this.el_x, this.el_y - 1]]!=null)
+                        this.el_sel = this.elementos[[this.el_x, this.el_y - 1]];
+                    else
+                    if(this.elementos[[this.el_x, this.el_y + 1]]!==undefined && this.elementos[[this.el_x, this.el_y + 1]]!=null)
+                        this.el_sel = this.elementos[[this.el_x, this.el_y + 1]];
                     break;
                 case 1:
                     this.el_x++;
@@ -455,10 +493,68 @@ Puzznic.prototype.teclas_mover = function(){
 
 }
 
+Puzznic.prototype.marcar_bloques_movimientos = function(){
+    for(var i in this.bloques){
+        var c = coordenadas(i);
+        var el = this.bloques[i];
+        if("intervalo" in el){
+            el.intervalo = el.intervalo - 1;
+            if(el.intervalo < 0){
+                el.intervalo = 20;
+                if(el.mov == null)
+                    if("vx" in el){
+                        if(this.puede_mover(c[0] + el.vx, c[1])){
+                            el.mov = [el.vx, 0, 0];
+                            this.elementos[[c[0] + el.vx, c[1]]] = null;
+
+                            c[1]--;
+
+                            while(this.elementos[[c[0], c[1]]]!==undefined && 
+                                    this.elementos[[c[0], c[1]]]!=null && 
+                                    this.elementos[[c[0], c[1]]].mov == null && 
+                                    this.puede_mover(c[0] + el.vx, c[1])){
+                                this.elementos[[c[0], c[1]]].mov = [el.vx, 0, 0];
+                                if(this.elementos[[c[0] + el.vx, c[1]]] === undefined)
+                                    this.elementos[[c[0] + el.vx, c[1]]] = null;
+                                c[1]--;
+                            }
+                        }else
+                            el.vx = -el.vx;
+                    }else{
+                        var c1 = [c[0], c[1] + el.vy];
+                        while(this.elementos[[c1[0], c1[1]]]!==undefined 
+                            && this.elementos[[c1[0], c1[1]]]!=null 
+                            && this.elementos[[c1[0], c1[1]]].mov==null)
+                            c1[1]+=el.vy;
+
+                        if(this.puede_mover(c1[0], c1[1])){
+                            c1 = [c[0], c[1] - 1];
+                            while(this.elementos[[c1[0], c1[1]]]!==undefined && 
+                                    this.elementos[[c1[0], c1[1]]]!=null && 
+                                    this.elementos[[c1[0], c1[1]]].mov == null &&
+                                    (el.vy == 1
+                                    || this.puede_mover(c[0], c1[1] + el.vy))){
+                                this.elementos[[c1[0], c1[1]]].mov = [0, el.vy, 0];
+                                if(this.elementos[[c1[0], c1[1] + el.vy]] === undefined)
+                                    this.elementos[[c1[0], c1[1] + el.vy]] = null;
+                                c[1]--;
+                            }
+
+                            el.mov = [0, el.vy, 0];
+                            if(this.elementos[[c[0], c[1] + el.vy]]===undefined)
+                                this.elementos[[c[0], c[1] + el.vy]] = null;
+                        }else
+                            el.vy = -el.vy;
+                    }
+            }
+        }
+    }
+}
+
 Puzznic.prototype.marcar_gravedad = function(){
     for(var i in this.elementos){
         var c = coordenadas(i);
-        if(this.mov == null && this.puede_mover(c[0], c[1] + 1)){
+        if(this.puede_mover(c[0], c[1] + 1)){
             while(this.elementos[[c[0], c[1]]]!==undefined && 
                     this.elementos[[c[0], c[1]]]!=null && 
                     this.elementos[[c[0], c[1]]].mov == null){
@@ -498,6 +594,28 @@ Puzznic.prototype.marcar_combinar = function(){
 Puzznic.prototype.aplicar_movimiento = function(){
     var agregar = [];
     var combinados = 0;
+
+    for(var i in this.bloques){
+        var c = coordenadas(i);
+        var el = this.bloques[i];
+        if(el!==undefined && el!= null && el.mov != null){
+            el.x += el.mov[0] / Elemento.i_max;
+            el.y += el.mov[1] / Elemento.i_max;
+            el.i++;
+            if(el.i>Elemento.i_max){
+                el.i = 0;
+                el.x = c[0] + el.mov[0];
+                el.y = c[1] + el.mov[1];
+                delete el.mov;
+                el.mov = null;
+                delete this.bloques[i];
+                if(this.elementos[[el.x, el.y]]==null)
+                    delete this.elementos[[el.x, el.y]];
+                this.bloques[[el.x, el.y]] = el;
+            }
+        }
+    }
+
     for(var i in this.elementos){
         var c = coordenadas(i);
         var el = this.elementos[i];
@@ -578,17 +696,17 @@ Puzznic.prototype.dibujar_pausa = function(){
     this.context.fillStyle = '#AAFFAA';
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.context.font = "bold 20px Arial";
+    this.context.font = "bold "+this.fonts[this.fs]["Medium"]+"px Arial";
     this.context.textAlign = "center";
     this.context.fillStyle = "black";
-    this.context.fillText("PAUSA", this.canvas.width / 2, this.canvas.height / 2 - 10);
+    this.context.fillText("PAUSA", this.canvas.width / 2, this.canvas.height / 2 - this.fonts[this.fs]["Medium"]/2);
 }
 
 Puzznic.prototype.dibujar_titulo = function(){
     this.context.fillStyle = '#AAFFAA';
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.context.font = "bold 20px Halo3";
+    this.context.font = "bold "+this.fonts[this.fs]["Large"]+"px Halo3";
     this.context.textAlign = "center";
     this.context.fillStyle = "black";
     for(var i=-1;i<=1;i++)
@@ -598,7 +716,7 @@ Puzznic.prototype.dibujar_titulo = function(){
     this.context.fillStyle = "white";
     this.context.fillText(this.titulo, this.canvas.width / 2, this.canvas.height / 2 - 10);
 
-    this.context.font = "bold 20px Arial";
+    this.context.font = "bold "+this.fonts[this.fs]["Medium"]+"px Arial";
     this.context.fillStyle = "red";
     this.context.fillText(this.tiempo, this.canvas.width / 2, this.canvas.height / 2 + 20);
 }
@@ -611,7 +729,7 @@ Puzznic.prototype.pantalla_fin_del_juego = function(){
 
     this.titulo = "Fin del Juego";
 
-    this.context.font = "bold 40px Halo3";
+    this.context.font = "bold "+this.fonts[this.fs]["Large"]+"px Halo3";
     this.context.textAlign = "center";
     this.context.fillStyle = "#228822";
     for(var i=-2;i<=2;i++)
@@ -621,9 +739,9 @@ Puzznic.prototype.pantalla_fin_del_juego = function(){
     this.context.fillStyle = "white";
     this.context.fillText(this.titulo, this.canvas.width / 2, this.canvas.height / 2 - 10);
 
-    this.context.font = "bold 20px Arial";
+    this.context.font = "bold "+this.fonts[this.fs]["Medium"]+"px Arial";
     this.context.fillStyle = "black";
-    this.context.fillText("PRESIONE UNA TECLA PARA CONTINUAR", this.canvas.width / 2, this.canvas.height / 2 + 30);
+    this.context.fillText("PRESIONE UNA TECLA PARA VOLVER A JUGAR", this.canvas.width / 2, this.canvas.height / 2 + 30);
 
     delete this.keypress_func;
     this.keypress_func = function(ev){
@@ -633,9 +751,8 @@ Puzznic.prototype.pantalla_fin_del_juego = function(){
     };
 }
 
-Puzznic.prototype.pantalla_inicial = function(){
+Puzznic.prototype.dibujar_pantalla_ayuda = function(){
     var self = this;
-    console.log("Pantalla Inicial");
 
     this.context.fillStyle = '#AAFFAA';
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -661,39 +778,51 @@ Puzznic.prototype.pantalla_inicial = function(){
     var img;
     var y = 0.2 * this.canvas.height;
     var x = 0.1 * this.canvas.width;
+
+    img = document.getElementById("key_f1");
+    this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
+    this.context.fillText("esta pantalla.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
+
+    y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_left");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Mover a la izquierda.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Mover a la izquierda.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_right");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Mover a la derecha.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Mover a la derecha.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_up");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Mover a arriba.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Mover a arriba.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_down");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Mover a abajo.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Mover a abajo.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_spacebar");
     this.context.drawImage(img, x - this.fonts[this.fs]["Medium"], y, this.fonts[this.fs]["Medium"] * 2, this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Seleccionar/Deselecionar pieza.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Seleccionar/Deselecionar pieza.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_p");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Pausar juego.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Pausar juego.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_r");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
-    this.context.fillText("Reiniciar pantalla.", 2*this.fonts[this.fs]["Medium"] + x, y + this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Reiniciar pantalla.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
+}
+
+Puzznic.prototype.pantalla_inicial = function(){
+    var self = this;
+
+    this.dibujar_pantalla_ayuda();
 
     delete this.keypress_func;
     this.keypress_func = function(ev){
@@ -706,5 +835,18 @@ Puzznic.prototype.pantalla_inicial = function(){
 
         this.pantalla = this.dibujar;
         this.mapa_siguiente();
+    };
+}
+
+Puzznic.prototype.pantalla_ayuda = function(){
+    var self = this;
+
+    this.dibujar_pantalla_ayuda();
+
+    delete this.keypress_func;
+    this.keypress_func = function(ev){
+        this.reanudar();
+        self.eventos_teclas_juego();
+        this.pantalla = this.dibujar;
     };
 }
