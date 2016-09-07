@@ -1,9 +1,19 @@
 # Puzznic
-Juego de Puzznic - Javascript - Canvas
+Juego basado en el famoso *Puzznic* realizado con Javascript y Canvas.
 
 ## Tabla de contenidos
 
+  1. [Reglas de Juego](#Reglas-de-Juego)
+  1. [Demo](#Demo)
   1. [Licencia](#license)
+
+## Reglas de Juego
+
+La idea principal es combinar piezas del mismo color. Para ello se puede seleccionar una piza y moverla a la izquierda o a la derecha simpre que no halla un bloque o pieza.
+
+## Demo
+
+[http://fstnando.tk/puzznic/](http://fstnando.tk/puzznic/)
 
 ## Licencia
 
