@@ -248,12 +248,14 @@ Puzznic.prototype.iniciar = function(){
     this.agregar_mapas();
     this.pausar();
 
-    //this.pantalla = this.pantalla_inicial;
-    //this.pantalla_inicial();
+    this.pantalla = this.pantalla_inicial;
+    this.pantalla_inicial();
 
+    /*
     this.pantalla = this.dibujar;
     this.eventos_teclas_juego();
     this.mapa_siguiente();
+    */
 }
 
 Puzznic.prototype.agregar_mapas = function(){
