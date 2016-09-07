@@ -13,7 +13,8 @@ La idea principal es combinar piezas del mismo color. Para ello se puede selecci
 
 ## Demo
 
-[http://fstnando.tk/puzznic/](http://fstnando.tk/puzznic/)
+* [http://fstnando.tk/portfolio/8/](http://fstnando.tk/portfolio/8/).
+* [http://fstnando.tk/puzznic/](http://fstnando.tk/puzznic/).
 
 ## Licencia
 
