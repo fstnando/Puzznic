@@ -699,8 +699,10 @@ Puzznic.prototype.pantalla_inicial = function(){
     this.keypress_func = function(ev){
         this.eventos_teclas_juego();
 
+        /*
         for(var i=0;i<9;i++)
             this.mapas.shift();
+        */
 
         this.pantalla = this.dibujar;
         this.mapa_siguiente();
