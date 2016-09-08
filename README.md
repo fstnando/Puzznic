@@ -20,7 +20,7 @@ La idea principal es combinar piezas del mismo color. Para ello se puede selecci
 
 (The MIT License)
 
-Copyright (c) 2014-2016 Airbnb
+Copyright (c) 2016 Sergio Fernando Sanz Troiani
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
