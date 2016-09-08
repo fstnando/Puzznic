@@ -14,8 +14,6 @@ var Elemento = function(x, y, valor){
     this.i = 0;
 }
 
-Elemento.i_max = 10;
-
 var Puzznic = function(elemento){
     var self = this;
     this.canvas = document.getElementById(elemento);
@@ -25,7 +23,6 @@ var Puzznic = function(elemento){
     this.ty = 30;
     this.lx = 15;
     this.ly = 15;
-    this.ftp = 1000/60;
     this.ix = 0;
     this.iy = 0;
 
@@ -45,7 +42,7 @@ var Puzznic = function(elemento){
     this.key_sel        = 32;
     this.key_reiniciar  = 82;
     this.key_pausa      = 80;
-    this.key_ctr_fc     = 102;
+    this.key_ctr_fc     = 70;
     this.key_ayuda      = 112;
 
     this.fs = "desktop";
@@ -103,6 +100,7 @@ Puzznic.prototype.eventos_teclas_juego = function(){
     delete this.keypress_func;
     this.keypress_func = function(ev){
         var codigo = ev.which || ev.keyCode;
+        console.log(ev);
 
         if(codigo==self.key_ctr_fc && ev.ctrlKey==true){
             self.to_fullscreen();
@@ -284,7 +282,7 @@ Puzznic.prototype.reanudar = function(){
     clearInterval(this.intervalo);
     this.intervalo = setInterval(function(){
         self.run();
-    }, this.ftp);
+    }, Puzznic.fps);
 }
 
 
@@ -349,12 +347,12 @@ Puzznic.prototype.cargar_mapa = function(mapa){
                 case "H":
                     this.nuevo_bloque(j, i);
                     this.bloques[[j, i]].vx = 1;
-                    this.bloques[[j, i]].intervalo = 20;
+                    this.bloques[[j, i]].intervalo = Puzznic.hv_intervalo;
                     break;
                 case "V":
                     this.nuevo_bloque(j, i);
                     this.bloques[[j, i]].vy = 1;
-                    this.bloques[[j, i]].intervalo = 20;
+                    this.bloques[[j, i]].intervalo = Puzznic.hv_intervalo;
                     break;
                 default:
                     caracter = parseInt(caracter);
@@ -375,7 +373,7 @@ Puzznic.prototype.cargar_mapa = function(mapa){
         this.el_y = c[1];
         break;
     };
-    this.tiempo = 5;
+    this.tiempo = Puzznic.t_espera_iniciar_mapa;
     this.dibujar_titulo();
     self.tiempo--;
     this.t_titulo = window.setInterval(function(){
@@ -385,7 +383,7 @@ Puzznic.prototype.cargar_mapa = function(mapa){
     window.setTimeout(function(){
         clearInterval(self.t_titulo);
         self.reanudar();
-    }, 5000);
+    }, 1000 * Puzznic.t_espera_iniciar_mapa);
 }
 
 Puzznic.prototype.es_ganador = function(mapa){
@@ -502,7 +500,7 @@ Puzznic.prototype.marcar_bloques_movimientos = function(){
         if("intervalo" in el){
             el.intervalo = el.intervalo - 1;
             if(el.intervalo < 0){
-                el.intervalo = 20;
+                el.intervalo = Puzznic.hv_intervalo;
                 if(el.mov == null)
                     if("vx" in el){
                         if(this.puede_mover(c[0] + el.vx, c[1])){
@@ -601,10 +599,10 @@ Puzznic.prototype.aplicar_movimiento = function(){
         var c = coordenadas(i);
         var el = this.bloques[i];
         if(el!==undefined && el!= null && el.mov != null){
-            el.x += el.mov[0] / Elemento.i_max;
-            el.y += el.mov[1] / Elemento.i_max;
+            el.x += el.mov[0] / Puzznic.i_max;
+            el.y += el.mov[1] / Puzznic.i_max;
             el.i++;
-            if(el.i>Elemento.i_max){
+            if(el.i>Puzznic.i_max){
                 el.i = 0;
                 el.x = c[0] + el.mov[0];
                 el.y = c[1] + el.mov[1];
@@ -622,10 +620,10 @@ Puzznic.prototype.aplicar_movimiento = function(){
         var c = coordenadas(i);
         var el = this.elementos[i];
         if(el!==undefined && el!= null && el.mov != null){
-            el.x += el.mov[0] / Elemento.i_max;
-            el.y += el.mov[1] / Elemento.i_max;
+            el.x += el.mov[0] / Puzznic.i_max;
+            el.y += el.mov[1] / Puzznic.i_max;
             el.i++;
-            if(el.i>Elemento.i_max){
+            if(el.i>Puzznic.i_max){
                 el.i = 0;
                 if(el.mov[2]==0){
                     el.x = c[0] + el.mov[0];
@@ -811,6 +809,14 @@ Puzznic.prototype.dibujar_pantalla_ayuda = function(){
     this.context.fillText("Seleccionar/Deselecionar pieza.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
 
     y += 1.5*this.fonts[this.fs]["Medium"];
+    img = document.getElementById("key_ctrl");
+    this.context.drawImage(img, x - 2.5*this.fonts[this.fs]["Medium"], y, this.fonts[this.fs]["Medium"] * 2, this.fonts[this.fs]["Medium"]);
+
+    img = document.getElementById("key_f");
+    this.context.drawImage(img, x - 0*this.fonts[this.fs]["Medium"], y, this.fonts[this.fs]["Medium"] * 1, this.fonts[this.fs]["Medium"]);
+    this.context.fillText("Pantalla completa.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
+
+    y += 1.5*this.fonts[this.fs]["Medium"];
     img = document.getElementById("key_p");
     this.context.drawImage(img, x, y, this.fonts[this.fs]["Medium"], this.fonts[this.fs]["Medium"]);
     this.context.fillText("Pausar juego.", 2*this.fonts[this.fs]["Medium"] + x, y + 0.8*this.fonts[this.fs]["Medium"]);
@@ -830,10 +836,8 @@ Puzznic.prototype.pantalla_inicial = function(){
     this.keypress_func = function(ev){
         this.eventos_teclas_juego();
 
-        /*
-        for(var i=0;i<9;i++)
+        for(var i=0;i<Puzznic.saltear_mapas;i++)
             this.mapas.shift();
-        */
 
         this.pantalla = this.dibujar;
         this.mapa_siguiente();
@@ -852,3 +856,22 @@ Puzznic.prototype.pantalla_ayuda = function(){
         this.pantalla = this.dibujar;
     };
 }
+
+/*
+ *  CONFIGURACIÓN GENERAL DEL JUEGO
+ */
+
+// Tiempo de espera para empezar el mapa.
+Puzznic.t_espera_iniciar_mapa = 3;
+
+// Cantidad de divisiones para realizar un movimientos.
+Puzznic.i_max = 3;
+
+// Intervalo de espera de los bloques que se mueven.
+Puzznic.hv_intervalo = 20;
+
+// Salter mapas
+Puzznic.saltear_mapas = 0;
+
+// FPS - Frames por segundos
+Puzznic.fps = 1000/30;
